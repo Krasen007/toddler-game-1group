@@ -453,8 +453,9 @@
     </div>
     <div id="game" hidden>
         <div id="bar"><button class="btn" id="back">⬅ Назад</button>
-            <div id="st"></div><button class="btn" id="fs" aria-label="Цял екран">⛶</button><button class="btn" id="theme" aria-label="Смяна на темата">🌙</button><button
-                class="btn" id="re" aria-label="Повторение на въпроса">🔊</button>
+            <div id="st"></div><button class="btn" id="fs" aria-label="Цял екран">⛶</button><button class="btn"
+                id="theme" aria-label="Смяна на темата">🌙</button><button class="btn" id="re"
+                aria-label="Повторение на въпроса">🔊</button>
         </div>
         <div id="p"></div>
         <div id="show"></div>
@@ -633,7 +634,7 @@
         function upd() { $('#st').textContent = '⭐'.repeat(Math.min(stars, 10)) + (stars > 10 ? ' +' + (stars - 10) : '') }
         function endGame() { if (gameDone) return; gameDone = true; try { speechSynthesis.cancel() } catch (e) { } stopFx(); const f = $('#fx'); f.textContent = '🎉'; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); say('Браво!'); setTimeout(() => { try { speechSynthesis.cancel() } catch (e) { } stopFx(); $('#game').hidden = true; $('#menu-wrap').hidden = false; }, 2000); }
         function stopFx() { clearInterval(spawnT); clearTimeout(badT); T.forEach(clearTimeout); T.length = 0; try { removeEventListener('devicemotion', onMotion); } catch (e) { } $('#move').innerHTML = '' }
-        function open(k) { cur = k; stars = 0; tp = 0; gameDone = false; upd(); stopFx(); $('#menu-wrap').hidden = true; $('#game').hidden = false; const m = G[k].m;['music', 'draw', 'move'].forEach(i => $('#' + i).hidden = !(m == i || (i == 'move' && (m == 'pop' || m == 'shake' || m == 'gait' || m == 'throw'))));['p', 'show', 'opts'].forEach(i => $('#' + i).hidden = !!m); hint = ''; if (m) ({ music() { tell('Докосни тъпана и акордеона!') },             draw: initDraw, pop: startPop, shake: startShake, gait: startGait, throw: startThrow, music() { startMusic() } })[m](); else round() }
+        function open(k) { cur = k; stars = 0; tp = 0; gameDone = false; upd(); stopFx(); $('#menu-wrap').hidden = true; $('#game').hidden = false; const m = G[k].m;['music', 'draw', 'move'].forEach(i => $('#' + i).hidden = !(m == i || (i == 'move' && (m == 'pop' || m == 'shake' || m == 'gait' || m == 'throw'))));['p', 'show', 'opts'].forEach(i => $('#' + i).hidden = !!m); hint = ''; if (m) ({ music() { tell('Докосни тъпана и акордеона!') }, draw: initDraw, pop: startPop, shake: startShake, gait: startGait, throw: startThrow, music() { startMusic() } })[m](); else round() }
         function round() { if (gameDone) return; q = G[cur].gen(); $('#p').textContent = q.p; $('#show').innerHTML = q.s || ''; const o = $('#opts'); o.innerHTML = ''; q.o.forEach(x => { const b = document.createElement('button'); b.className = 'opt'; b.innerHTML = x.t + (x.l ? `<small>${x.l}</small>` : ''); b.disabled = false; b.style.pointerEvents = 'auto'; b.dataset.locked = '0'; b.onclick = () => { if (gameDone) return; if (b.dataset.locked == '1') return; b.dataset.locked = '1'; ans(b, x); }; o.append(b) }); tell(q.say || q.p) }
         /* A wrong tap never dead-ends: gentle cue, then the SAME question is
            spoken again unprompted. Recovery must not depend on a 22px button. */
