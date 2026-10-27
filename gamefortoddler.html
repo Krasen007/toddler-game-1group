@@ -571,10 +571,18 @@
         function ng(L) { return () => { const t = pick(L), o = shuf(L.filter(x => x != t)).slice(0, 2).concat([t]); return { p: `Къде е ${t[1]}?`, s: '', o: shuf(o).map(f => ({ t: f[0], ok: f == t })) } } }
         function qz(L) { return () => { const t = pick(L), c = t[2], o = shuf(t.slice(3).concat([c])); return { p: t[1], s: t[0], o: o.map(x => ({ t: x[0], l: x[1], ok: x == c })) } } }
         const T = []; const later = (f, ms) => { const i = setTimeout(f, ms); T.push(i); return i };
-        let tp = 0, spawnT, mv = 0;
-        const TL = [['🐰🥕', 'Имало едно време едно зайче. Зайчето много обичало моркови.'], ['🐰🌳', 'Зайчето тръгнало да търси моркови в градината.'], ['🐰🥕🥕', 'Намерило голям морков и подскочило от радост! Скок, скок, зайче, скок!'], ['🐰😋', 'Зайчето хапнало моркова и казало: Ам-ам, вкусно!']];
-        const QS = [['Кой имаше в приказката?', '🐰', ['🐻', '🐱']], ['Какво обичаше зайчето?', '🥕', ['🍌', '🐟']]];
-        function tale() { if (tp < 4) { const t = TL[tp], l = tp == 0 ? 'начало' : tp == 3 ? 'край' : ''; tp++; return { p: t[1], s: t[0], o: [{ t: '▶', l, go: 1 }] } } if (tp < 6) { const k = QS[tp - 4]; tp++; return { p: k[0], s: '', o: shuf([k[1]].concat(k[2])).map(e => ({ t: e, ok: e == k[1] })) } } tp = 0; return tale() }
+        let tp = 0, spawnT, mv = 0, taleSet = 0;
+        const TALES = [
+            {
+                TL: [['🐰🥕', 'Имало едно време едно зайче. Зайчето много обичало моркови.'], ['🐰🌳', 'Зайчето тръгнало да търси моркови в градината.'], ['🐰🥕🥕', 'Намерило голям морков и подскочило от радост! Скок, скок, зайче, скок!'], ['🐰😋', 'Зайчето хапнало моркова и казало: Ам-ам, вкусно!']],
+                QS: [['Кой имаше в приказката?', '🐰', ['🐻', '🐱']], ['Какво обичаше зайчето?', '🥕', ['🍌', '🐟']]]
+            },
+            {
+                TL: [['🐥🌾', 'Имало едно време едно пиленце. Пиленцето искало да помогне на мама кокошка.'], ['🐥🦗', 'Тръгнало по полето и събрало житни зърна за другите пиленца.'], ['🐔💚', 'Мама кокошка се зарадвала много и похвалила пиленцето.'], ['🐥😄', 'Всички се хранили заедно и били много щастливи!']],
+                QS: [['Кой искаше да помогне?', '🐥', ['🐰', '🐸']], ['Кого похвалила мама кокошка?', '🐥', ['🐸', '🐌']]]
+            }
+        ];
+        function tale() { const Tcur = TALES[taleSet % TALES.length]; if (tp < 4) { const t = Tcur.TL[tp], l = tp == 0 ? 'начало' : tp == 3 ? 'край' : ''; tp++; return { p: t[1], s: t[0], o: [{ t: '▶', l, go: 1 }] } } if (tp < 6) { const k = Tcur.QS[tp - 4]; tp++; return { p: k[0], s: '', o: shuf([k[1]].concat(k[2])).map(e => ({ t: e, ok: e == k[1] })) } } tp = 0; taleSet++; return tale() }
         function upd() { $('#st').textContent = '⭐'.repeat(Math.min(stars, 10)) + (stars > 10 ? ' +' + (stars - 10) : '') }
         function endGame() { if (gameDone) return; gameDone = true; try { speechSynthesis.cancel() } catch (e) { } stopFx(); const f = $('#fx'); f.textContent = '🎉'; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); say('Браво!'); setTimeout(() => { try { speechSynthesis.cancel() } catch (e) { } stopFx(); $('#game').hidden = true; $('#menu-wrap').hidden = false; }, 2000); }
         function stopFx() { clearInterval(spawnT); clearTimeout(badT); T.forEach(clearTimeout); T.length = 0; try { removeEventListener('devicemotion', onMotion); } catch (e) { } $('#move').innerHTML = '' }
