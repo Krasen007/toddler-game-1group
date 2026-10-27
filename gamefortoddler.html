@@ -538,7 +538,7 @@
             fruit: { e: '🍓🥕', n: 'Плодове и зеленчуци', r: 'Околен свят 19', gen() { const t = pick(FR), o = shuf(FR.filter(x => x != t)).slice(0, 2).concat([t]); return { p: `Къде е ${t[1]}?`, s: '', o: shuf(o).map(f => ({ t: f[0], l: f[2], ok: f == t })) } } },
             day: { e: '☀️🌙', n: 'Ден и нощ', r: 'Математика 7', gen() { const d = Math.random() < .5; return { p: 'Ден ли е, или нощ?', s: d ? '🌳☀️🐦' : '🌙⭐😴', o: [{ t: '☀️', l: 'ден', ok: d }, { t: '🌙', l: 'нощ', ok: !d }] } } },
             wx: { e: '🌧️', n: 'Времето', r: 'Околен свят 20', gen() { const t = pick(WE); return { p: `Кое е ${t[1]} време?`, s: '', o: shuf(WE).map(w => ({ t: w[0], ok: w == t })) } } },
-            music: { e: '🥁', n: 'Тъпан и акордеон', r: 'Музика 1', m: 'music' },
+            music: { e: '🥁', n: 'Музикални инструменти', r: 'Музика 1–4', m: 'music' },
             draw: { e: '🎨', n: 'Рисуване и оцветяване', r: 'Изобр. изкуство 2–6', m: 'draw' },
             pop: { e: '🎈', n: 'Пукай балони', r: 'Физ. култура 14', m: 'pop' },
             shake: { e: '🐻', n: 'Клатушка и танц', r: 'Физ. култура 13 · Музика 4', m: 'shake' },
@@ -633,7 +633,7 @@
         function upd() { $('#st').textContent = '⭐'.repeat(Math.min(stars, 10)) + (stars > 10 ? ' +' + (stars - 10) : '') }
         function endGame() { if (gameDone) return; gameDone = true; try { speechSynthesis.cancel() } catch (e) { } stopFx(); const f = $('#fx'); f.textContent = '🎉'; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); say('Браво!'); setTimeout(() => { try { speechSynthesis.cancel() } catch (e) { } stopFx(); $('#game').hidden = true; $('#menu-wrap').hidden = false; }, 2000); }
         function stopFx() { clearInterval(spawnT); clearTimeout(badT); T.forEach(clearTimeout); T.length = 0; try { removeEventListener('devicemotion', onMotion); } catch (e) { } $('#move').innerHTML = '' }
-        function open(k) { cur = k; stars = 0; tp = 0; gameDone = false; upd(); stopFx(); $('#menu-wrap').hidden = true; $('#game').hidden = false; const m = G[k].m;['music', 'draw', 'move'].forEach(i => $('#' + i).hidden = !(m == i || (i == 'move' && (m == 'pop' || m == 'shake' || m == 'gait' || m == 'throw'))));['p', 'show', 'opts'].forEach(i => $('#' + i).hidden = !!m); hint = ''; if (m) ({ music() { tell('Докосни тъпана и акордеона!') }, draw: initDraw, pop: startPop, shake: startShake, gait: startGait, throw: startThrow })[m](); else round() }
+        function open(k) { cur = k; stars = 0; tp = 0; gameDone = false; upd(); stopFx(); $('#menu-wrap').hidden = true; $('#game').hidden = false; const m = G[k].m;['music', 'draw', 'move'].forEach(i => $('#' + i).hidden = !(m == i || (i == 'move' && (m == 'pop' || m == 'shake' || m == 'gait' || m == 'throw'))));['p', 'show', 'opts'].forEach(i => $('#' + i).hidden = !!m); hint = ''; if (m) ({ music() { tell('Докосни тъпана и акордеона!') },             draw: initDraw, pop: startPop, shake: startShake, gait: startGait, throw: startThrow, music() { startMusic() } })[m](); else round() }
         function round() { if (gameDone) return; q = G[cur].gen(); $('#p').textContent = q.p; $('#show').innerHTML = q.s || ''; const o = $('#opts'); o.innerHTML = ''; q.o.forEach(x => { const b = document.createElement('button'); b.className = 'opt'; b.innerHTML = x.t + (x.l ? `<small>${x.l}</small>` : ''); b.disabled = false; b.style.pointerEvents = 'auto'; b.dataset.locked = '0'; b.onclick = () => { if (gameDone) return; if (b.dataset.locked == '1') return; b.dataset.locked = '1'; ans(b, x); }; o.append(b) }); tell(q.say || q.p) }
         /* A wrong tap never dead-ends: gentle cue, then the SAME question is
            spoken again unprompted. Recovery must not depend on a 22px button. */
@@ -644,6 +644,32 @@
         $('#fs').onclick = async () => { try { if (!document.fullscreenElement) { await document.documentElement.requestFullscreen(); $('#fs').textContent = '🗗'; } else { await document.exitFullscreen(); $('#fs').textContent = '⛶'; } } catch (e) { } };
         document.addEventListener('fullscreenchange', () => { const fs = $('#fs'); if (!fs) return; if (document.fullscreenElement) fs.textContent = '🗗'; else fs.textContent = '⛶'; });
         $('#re').onclick = () => { if (hint) say(hint) };
+        const MUS = [
+            { e: '🥁', n: 'тъпан', play() { tone(150, .25, 'sine', .5, 40); say('Тъпан') } },
+            { e: '🪗', n: 'акордеон', play() { [220, 277, 330].forEach(f => tone(f, .6, 'sawtooth', .08)); say('Акордеон') } },
+            { e: '🎸', n: 'китара', play() { [196, 247, 294, 330].forEach((f, i) => later(() => tone(f, .25, 'triangle', .1), i * 120)); say('Китара') } },
+            { e: '🎺', n: 'тромпет', play() { [523, 659, 784, 659].forEach((f, i) => later(() => tone(f, .22, 'square', .09), i * 140)); say('Тромпет') } },
+            { e: '🎻', n: 'цигулка', play() { [659, 784, 988, 1175].forEach((f, i) => later(() => tone(f, .28, 'sawtooth', .07), i * 110)); say('Цигулка') } },
+            { e: '🪘', n: 'барабан', play() { [120, 90, 150].forEach((f, i) => later(() => tone(f, .18, 'sine', .35), i * 80)); say('Барабан') } },
+            { e: '🔔', n: 'звънец', play() { [1047, 1319].forEach((f, i) => later(() => tone(f, .16, 'sine', .12, 800), i * 70)); say('Звънец') } },
+            { e: '🪇', n: 'маракаси', play() { for (let i = 0; i < 6; i++) later(() => tone(1800 + Math.random() * 400, .05, 'square', .05), i * 40); say('Маракаси') } }
+        ];
+        function startMusic() {
+            const m = $('#music');
+            m.innerHTML = '<div id="p2" style="font-size:28px;font-weight:700;margin:6px">Докосни и свири!</div>';
+            const g = document.createElement('div');
+            g.id = 'musgrid';
+            g.style.cssText = 'display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:10px';
+            m.append(g);
+            MUS.forEach(x => {
+                const b = document.createElement('button');
+                b.className = 'inst';
+                b.innerHTML = x.e + '<small>' + x.n + '</small>';
+                b.onclick = x.play;
+                g.append(b);
+            });
+            tell('Докосни инструментите и свири!');
+        }
         $('#drum').onclick = () => { tone(150, .25, 'sine', .5, 40); say('Тъпан') };
         $('#acc').onclick = () => { [220, 277, 330].forEach(f => tone(f, .6, 'sawtooth', .08)); say('Акордеон') };
         /* startPop: under reduced motion the balloons go static, so they must be laid
@@ -666,20 +692,21 @@
         }
         function startShake() { $('#move').innerHTML = '<div id="dz" style="font-size:130px;transition:transform .15s;margin-top:20px">🐻</div><p style="font-size:22px;margin:10px">Клатушкай телефона – мечето ще танцува! Или докосвай мечето.</p><button class="btn" id="go">▶ Старт</button>'; $('#go').onclick = async () => { try { if (window.DeviceMotionEvent && DeviceMotionEvent.requestPermission && await DeviceMotionEvent.requestPermission() != 'granted') return } catch (e) { } addEventListener('devicemotion', onMotion); $('#go').hidden = true; tell('Клатушкай!') }; $('#dz').onclick = dance; tell('Клатушкай телефона!') }
         function onMotion(e) { const g = e.accelerationIncludingGravity; if (!g) return; const m = Math.abs(g.x || 0) + Math.abs(g.y || 0) + Math.abs(g.z || 0); if (onMotion.p != null && Math.abs(m - onMotion.p) > 8) dance(); onMotion.p = m }
-        const GA = [['🐾', 'Върви напред с малки стъпки!'], ['🦶', 'Върви с големи стъпки!'], ['🧍', 'Върви на пръсти!'], ['🦶', 'Върви на пети!'], ['⬅️', 'Върви назад!'], ['➡️', 'Върви встрани!'], ['🏃', 'Бягай в различни посоки!'], ['🦘', 'Подскачай на два крака!'], ['🧗', 'Пълзи и провирай се под въже!']];
+        const GA = [['🐾', 'Върви напред с малки стъпки!'], ['🦶', 'Върви с големи стъпки!'], ['🧍', 'Върви на пръсти!'], ['🦶', 'Върви на пети!'], ['⬅️', 'Върви назад!'], ['➡️', 'Върви встрани!'], ['🏃', 'Бягай в различни посоки!'], ['🦘', 'Подскачай на два крака!'], ['🧗', 'Пълзи и провирай се под въже!'], ['🤸', 'Клекни и стань!'], ['💃', 'Завърти се!']];
         /* startGait no longer pretends to measure anything. There is no sensing here,
            so it awards no star for a self-report — it is a movement follow-along
            (like draw: ungraded), which is the only honest version of this game. */
         function startGait() {
             $('#move').innerHTML = '<div id="gm"><p id="gt" style="font-size:22px;font-weight:700"></p><span class="big">🧍</span><button class="btn" id="gn">Направих го! 👍</button></div>';
-            const L = GA.slice(); let i = 0;
+            const L = shuf(GA.slice()); let i = 0;
+            stars = 0; upd();
             const show = () => {
                 if (!L.length) { L.push(...shuf(GA)) }
                 const m = L.shift();
                 $('#gm .big').textContent = m[0]; $('#gt').textContent = m[1];
                 tell(m[1]); tone(400 + i * 40, .12, 'triangle', .12)
             };
-            const step = () => { tone(700, .18, 'triangle'); later(() => tone(1000, .25, 'triangle'), 140); say(pick(['Браво!', 'Супер!', 'Отлично!'])); i++; show() };
+            const step = () => { if (gameDone) return; tone(700, .18, 'triangle'); later(() => tone(1000, .25, 'triangle'), 140); say(pick(['Браво!', 'Супер!', 'Отлично!'])); stars++; upd(); i++; if (stars >= 5) { setTimeout(() => endGame(), 600); return; } show() };
             $('#gn').onclick = step;
             tell('Да правим движения заедно!'); show()
         }
