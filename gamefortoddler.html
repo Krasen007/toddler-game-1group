@@ -453,7 +453,7 @@
     </div>
     <div id="game" hidden>
         <div id="bar"><button class="btn" id="back">⬅ Назад</button>
-            <div id="st"></div><button class="btn" id="theme" aria-label="Смяна на темата">🌙</button><button
+            <div id="st"></div><button class="btn" id="fs" aria-label="Цял екран">⛶</button><button class="btn" id="theme" aria-label="Смяна на темата">🌙</button><button
                 class="btn" id="re" aria-label="Повторение на въпроса">🔊</button>
         </div>
         <div id="p"></div>
@@ -472,7 +472,7 @@
     <div id="fx"></div>
     <script>
         const $ = s => document.querySelector(s), pick = a => a[Math.random() * a.length | 0], shuf = a => [...a].sort(() => Math.random() - .5);
-        let stars = 0, cur = null, q = null, ac = null, hint = '', badT = 0;
+        let stars = 0, cur = null, q = null, ac = null, hint = '', badT = 0, gameDone = false;
         function say(t) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'bg-BG'; u.rate = .8; u.pitch = 1.25; speechSynthesis.speak(u) } catch (e) { } }
         /* tell() marks what the 🔊 button repeats; say() stays free for praise,
            so a tap on the bear never overwrites the game's own instruction. */
@@ -576,15 +576,18 @@
         const QS = [['Кой имаше в приказката?', '🐰', ['🐻', '🐱']], ['Какво обичаше зайчето?', '🥕', ['🍌', '🐟']]];
         function tale() { if (tp < 4) { const t = TL[tp], l = tp == 0 ? 'начало' : tp == 3 ? 'край' : ''; tp++; return { p: t[1], s: t[0], o: [{ t: '▶', l, go: 1 }] } } if (tp < 6) { const k = QS[tp - 4]; tp++; return { p: k[0], s: '', o: shuf([k[1]].concat(k[2])).map(e => ({ t: e, ok: e == k[1] })) } } tp = 0; return tale() }
         function upd() { $('#st').textContent = '⭐'.repeat(Math.min(stars, 10)) + (stars > 10 ? ' +' + (stars - 10) : '') }
-        function stopFx() { clearInterval(spawnT); clearTimeout(badT); T.forEach(clearTimeout); T.length = 0; removeEventListener('devicemotion', onMotion); $('#move').innerHTML = '' }
-        function open(k) { cur = k; stars = 0; tp = 0; upd(); stopFx(); $('#menu-wrap').hidden = true; $('#game').hidden = false; const m = G[k].m;['music', 'draw', 'move'].forEach(i => $('#' + i).hidden = !(m == i || (i == 'move' && (m == 'pop' || m == 'shake' || m == 'gait' || m == 'throw'))));['p', 'show', 'opts'].forEach(i => $('#' + i).hidden = !!m); hint = ''; if (m) ({ music() { tell('Докосни тъпана и акордеона!') }, draw: initDraw, pop: startPop, shake: startShake, gait: startGait, throw: startThrow })[m](); else round() }
-        function round() { q = G[cur].gen(); $('#p').textContent = q.p; $('#show').innerHTML = q.s || ''; const o = $('#opts'); o.innerHTML = ''; q.o.forEach(x => { const b = document.createElement('button'); b.className = 'opt'; b.innerHTML = x.t + (x.l ? `<small>${x.l}</small>` : ''); b.onclick = () => ans(b, x); o.append(b) }); tell(q.say || q.p) }
+        function endGame() { if (gameDone) return; gameDone = true; try { speechSynthesis.cancel() } catch (e) { } stopFx(); const f = $('#fx'); f.textContent = '🎉'; f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); say('Браво!'); setTimeout(() => { try { speechSynthesis.cancel() } catch (e) { } stopFx(); $('#game').hidden = true; $('#menu-wrap').hidden = false; }, 2000); }
+        function stopFx() { clearInterval(spawnT); clearTimeout(badT); T.forEach(clearTimeout); T.length = 0; try { removeEventListener('devicemotion', onMotion); } catch (e) { } $('#move').innerHTML = '' }
+        function open(k) { cur = k; stars = 0; tp = 0; gameDone = false; upd(); stopFx(); $('#menu-wrap').hidden = true; $('#game').hidden = false; const m = G[k].m;['music', 'draw', 'move'].forEach(i => $('#' + i).hidden = !(m == i || (i == 'move' && (m == 'pop' || m == 'shake' || m == 'gait' || m == 'throw'))));['p', 'show', 'opts'].forEach(i => $('#' + i).hidden = !!m); hint = ''; if (m) ({ music() { tell('Докосни тъпана и акордеона!') }, draw: initDraw, pop: startPop, shake: startShake, gait: startGait, throw: startThrow })[m](); else round() }
+        function round() { if (gameDone) return; q = G[cur].gen(); $('#p').textContent = q.p; $('#show').innerHTML = q.s || ''; const o = $('#opts'); o.innerHTML = ''; q.o.forEach(x => { const b = document.createElement('button'); b.className = 'opt'; b.innerHTML = x.t + (x.l ? `<small>${x.l}</small>` : ''); b.dataset.locked = '0'; b.onclick = () => { if (gameDone) return; if (b.dataset.locked == '1') return; b.dataset.locked = '1'; ans(b, x); }; o.append(b) }); tell(q.say || q.p) }
         /* A wrong tap never dead-ends: gentle cue, then the SAME question is
            spoken again unprompted. Recovery must not depend on a 22px button. */
-        function bad(b) { b.classList.add('no'); nudge(); say(pick(['Опитай пак!', 'Хайде пак!', 'Да го направим пак!'])); const qq = q; clearTimeout(badT); badT = later(() => { if (q !== qq) return; b.classList.remove('no'); tell(q.say || q.p) }, 1300) }
-        function good(b) { clearTimeout(badT); b.classList.add('ok'); stars++; upd(); tone(660, .15, 'triangle'); later(() => tone(880, .25, 'triangle'), 150); const f = $('#fx'); f.textContent = pick(['🎉', '⭐', '🌟', '👏']); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); say(pick(['Браво!', 'Чудесно!', 'Много добре!'])); later(round, 1500) }
-        function ans(b, x) { if (x.go) return round(); if (q.seq) { if (x.c != q.seq[q.i]) return bad(b); q.i++; tone(660, .1, 'triangle'); $('#p').textContent = 'Подреди като мен! ' + '✅'.repeat(q.i); if (q.i < q.seq.length) return; return good(b) } x.ok ? good(b) : bad(b) }
+        function bad(b) { if (gameDone) return; b.classList.add('no'); nudge(); say(pick(['Опитай пак!', 'Хайде пак!', 'Да го направим пак!'])); const qq = q; clearTimeout(badT); badT = later(() => { if (gameDone || q !== qq) return; b.classList.remove('no'); if (b.dataset) b.dataset.locked = '0'; tell(q.say || q.p) }, 1300) }
+        function good(b) { if (gameDone) return; clearTimeout(badT); b.classList.add('ok'); stars++; upd(); if (stars >= 5) { setTimeout(() => endGame(), 600); return; } tone(660, .15, 'triangle'); later(() => tone(880, .25, 'triangle'), 150); const f = $('#fx'); f.textContent = pick(['🎉', '⭐', '🌟', '👏']); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); say(pick(['Браво!', 'Чудесно!', 'Много добре!'])); later(round, 1500) }
+        function ans(b, x) { if (gameDone) return; if (x.go) return round(); if (q.seq) { if (x.c != q.seq[q.i]) return bad(b); q.i++; tone(660, .1, 'triangle'); $('#p').textContent = 'Подреди като мен! ' + '✅'.repeat(q.i); if (q.i < q.seq.length) return; return good(b) } x.ok ? good(b) : bad(b) }
         $('#back').onclick = () => { try { speechSynthesis.cancel() } catch (e) { } stopFx(); $('#game').hidden = true; $('#menu-wrap').hidden = false };
+        $('#fs').onclick = async () => { try { if (!document.fullscreenElement) { await document.documentElement.requestFullscreen(); $('#fs').textContent = '🗗'; } else { await document.exitFullscreen(); $('#fs').textContent = '⛶'; } } catch (e) { } };
+        document.addEventListener('fullscreenchange', () => { const fs = $('#fs'); if (!fs) return; if (document.fullscreenElement) fs.textContent = '🗗'; else fs.textContent = '⛶'; });
         $('#re').onclick = () => { if (hint) say(hint) };
         $('#drum').onclick = () => { tone(150, .25, 'sine', .5, 40); say('Тъпан') };
         $('#acc').onclick = () => { [220, 277, 330].forEach(f => tone(f, .6, 'sawtooth', .08)); say('Акордеон') };
@@ -600,7 +603,7 @@
                 const col = calm ? slot++ % 5 : 0;
                 b.style.cssText = `left:${calm ? 4 + col * 19 : 5 + Math.random() * 78}%;width:${s}px;height:${s * 1.2}px;background:hsl(${Math.random() * 360 | 0} 85% 60%);animation-duration:${4 + Math.random() * 3}s`;
                 if (calm) b.style.bottom = `calc(4% + ${(Math.floor((slot - 1) / 5)) * 22}%)`;
-                b.onpointerdown = () => { if (b.dataset.x) return; b.dataset.x = 1; b.textContent = '💥'; b.style.background = 'none'; stars++; upd(); tone(300 + Math.random() * 500, .12, 'square', .15, 80); setTimeout(() => b.remove(), 250) };
+                b.onpointerdown = () => { if (gameDone) return; if (b.dataset.x) return; b.dataset.x = 1; b.textContent = '💥'; b.style.background = 'none'; stars++; upd(); if (stars >= 5) { setTimeout(() => endGame(), 300); return; } tone(300 + Math.random() * 500, .12, 'square', .15, 80); setTimeout(() => b.remove(), 250) };
                 b.onanimationend = () => b.remove();
                 later(() => b.remove(), 7500);
                 $('#sky').append(b)
@@ -642,7 +645,7 @@
                 let hit = -1;
                 bd.querySelectorAll('.bk').forEach(b => { const s = b.getBoundingClientRect(); if (cx > s.left && cx < s.left + s.width && cy > s.top && cy < s.top + s.height) hit = +b.dataset.i });
                 if (hit < 0 || cur < 0) { nudge(); say('Пусни я върху кошницата!'); return reset() }
-                if (hit == cur) { stars++; upd(); tone(660, .15, 'triangle'); later(() => tone(880, .25, 'triangle'), 150); say(pick(['Браво!', 'Точно в кошницата!', 'Ура!'])) }
+                if (hit == cur) { stars++; upd(); if (stars >= 5) { reset(); setTimeout(() => endGame(), 400); return; } tone(660, .15, 'triangle'); later(() => tone(880, .25, 'triangle'), 150); say(pick(['Браво!', 'Точно в кошницата!', 'Ура!'])) }
                 else { nudge(); say('Това не е ' + NM[cur] + '!') }
                 reset()
             };
@@ -659,7 +662,7 @@
             ball.onpointercancel = reset;
             tell('Хвърли топката в кошницата!')
         }
-        function dance() { const t = Date.now(); if (t - mv < 300) return; mv = t; stars++; upd(); tone(150, .2, 'sine', .4, 40); const d = $('#dz'); d.style.transform = `rotate(${stars % 2 ? -20 : 20}deg) scale(1.2)`; later(() => d.style.transform = '', 150); if (stars % 5 == 0) say('Браво!') }
+        function dance() { if (gameDone) return; const t = Date.now(); if (t - mv < 300) return; mv = t; stars++; upd(); if (stars >= 5) { tone(150, .2, 'sine', .4, 40); const d = $('#dz'); if (d) { d.style.transform = `rotate(${stars % 2 ? -20 : 20}deg) scale(1.2)`; later(() => { if (d) d.style.transform = ''; }, 150); } setTimeout(() => endGame(), 400); return; } tone(150, .2, 'sine', .4, 40); const d = $('#dz'); d.style.transform = `rotate(${stars % 2 ? -20 : 20}deg) scale(1.2)`; later(() => d.style.transform = '', 150); if (stars % 5 == 0) say('Браво!') }
         const COL = ['#e63946', '#ff9f1c', '#ffd60a', '#2bb3a3', '#3a86ff', '#8338ec', '#7b4a2e', '#222'];
         let tool = 'p', col = COL[0], pen = 0, cx; const cv = $('#cv');
         function clr() { cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height) }
